@@ -87,13 +87,28 @@ class DemoGridClusterer(StreamClusterer):
 
 class OnlineKMeans(StreamClusterer):
     def __init__(self, dim: int = 2, name: str = "online_kmeans",
-                 K: int = 8, update: str = "count", alpha: float = 0.05):
+                 K: int = 5, update: str = "ema", alpha: float = 0.05, distance: str = "cosine"):
         super().__init__(dim=dim, name=name)
         self.K = int(K)
         self.update = str(update)
         self.alpha = float(alpha)
         self.centroids = np.empty((0, dim), dtype=float)
         self.counts = np.empty((0,), dtype=float)
+        self.distance = str(distance)
+
+    def cosine_distances(self, x: np.ndarray) -> np.ndarray:
+        """Cosine distance (1 - cosine similarity) to all centers."""
+        # 计算余弦相似度：点积 / (L2范数的乘积)
+        cosine_sim = np.dot(self.centroids, x) / (
+            np.linalg.norm(self.centroids, axis=1) * np.linalg.norm(x)
+        )
+        # 余弦距离 = 1 - 余弦相似度
+        return 1 - cosine_sim
+    
+    def euclidean_distances(self, x: np.ndarray) -> np.ndarray:
+        """Euclidean distance to all centers."""
+        diffs = self.centroids - x
+        return np.einsum('ij,ij->i', diffs, diffs)
 
     def partial_fit(self, x: np.ndarray) -> int:
         x = np.asarray(x, dtype=float).reshape(-1)
@@ -102,8 +117,7 @@ class OnlineKMeans(StreamClusterer):
             self.counts = np.append(self.counts, 1.0)
             return int(self.centroids.shape[0] - 1)
 
-        diffs = self.centroids - x
-        d2 = np.einsum('ij,ij->i', diffs, diffs)
+        d2 = getattr(self, f"{self.distance}_distances")(x)
         j = int(np.argmin(d2))
 
         if self.update == "ema":
@@ -500,7 +514,7 @@ class FLOC(StreamClusterer):
 
     def __init__(self, dim: int = 2, name: str = "floc",
                  alpha: float = 100.0, beta: float = 0.2, gamma: float = 20.0,
-                 lambda_new: float = 2000.0, rho: float = 0.999,
+                 lambda_new: float = 1000.0, rho: float = 0.999,
                  merge_every: int = 200, max_k: int = 100, min_weight: float = 1.2,
                  max_merges_per_cleanup: int = 20):
         super().__init__(dim=dim, name=name)

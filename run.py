@@ -69,7 +69,7 @@ def main():
     parser.add_argument("--algos", type=str, default="floc,online_kmeans,dp_means",
                         help="Comma-separated algorithm names from model.ALGORITHM_REGISTRY")
     parser.add_argument("--n_points", type=int, default=10000)
-    parser.add_argument("--snapshot_every", type=int, default=100)
+    parser.add_argument("--snapshot_every", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--low", type=float, default=-100.0)
     parser.add_argument("--high", type=float, default=100.0)
@@ -123,6 +123,7 @@ def main():
         json.dump(metrics, f, ensure_ascii=False, indent=2)
 
     print("Done. See outputs/ for PNG snapshots and metrics.json.")
+    print(algo.get_state())
 
 if __name__ == "__main__":
     main()
