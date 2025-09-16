@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# https://chatgpt.com/share/68c798e3-ff68-8005-b4cc-af36d0699836
+# https://chatgpt.com/s/t_68c8236029c48191b795565cb20b4cdc
+# https://chatgpt.com/s/t_68c7bd06e2788191824c62455e7bc64a
 import argparse
 import os
 import numpy as np
