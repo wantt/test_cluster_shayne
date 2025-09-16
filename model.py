@@ -84,10 +84,10 @@ class DemoGridClusterer(StreamClusterer):
 ########################################
 # Online K-Means
 ########################################
-
+import math
 class OnlineKMeans(StreamClusterer):
     def __init__(self, dim: int = 2, name: str = "online_kmeans",
-                 K: int = 50, update: str = "count", alpha: float = 0.05, distance: str = "cosine"):
+                 K: int = 4, update: str = "count", alpha: float = 0.05, distance: str = "cosine"):
         super().__init__(dim=dim, name=name)
         self.K = int(K)
         self.update = str(update)
@@ -112,21 +112,27 @@ class OnlineKMeans(StreamClusterer):
 
     def partial_fit(self, x: np.ndarray) -> int:
         x = np.asarray(x, dtype=float).reshape(-1)
-        if self.centroids.shape[0] < self.K:
-            self.centroids = np.vstack([self.centroids, x[None, :]])
+        # if self.centroids.shape[0] < self.K:
+        #     self.centroids = np.vstack([self.centroids, x[None, :]])
+        #     self.counts = np.append(self.counts, 1.0)
+        #     return int(self.centroids.shape[0] - 1)
+        rng = np.random.default_rng(42)
+        while self.centroids.shape[0] < self.K:
+            tmp = rng.uniform(-1, 1, size=x.shape)
+            self.centroids = np.vstack([self.centroids, tmp[None, :]])
             self.counts = np.append(self.counts, 1.0)
-            return int(self.centroids.shape[0] - 1)
+            
 
         d2 = getattr(self, f"{self.distance}_distances")(x)
         j = int(np.argmin(d2))
 
         if self.update == "ema":
-            eta = self.alpha
+            eta = self.alpha  #*(2-d2[j])
             self.centroids[j] = (1.0 - eta) * self.centroids[j] + eta * x
             self.counts[j] += 1.0
         else:
             self.counts[j] += 1.0
-            eta = 1.0 / self.counts[j]
+            eta =  (1.0 / (1+self.counts[j]))**0.4 #*(2-d2[j])#  math.sqrt(1.0 / self.counts[j])
             self.centroids[j] = self.centroids[j] + eta * (x - self.centroids[j])
         return j
 
