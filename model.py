@@ -87,7 +87,7 @@ class DemoGridClusterer(StreamClusterer):
 
 class OnlineKMeans(StreamClusterer):
     def __init__(self, dim: int = 2, name: str = "online_kmeans",
-                 K: int = 5, update: str = "ema", alpha: float = 0.05, distance: str = "cosine"):
+                 K: int = 50, update: str = "count", alpha: float = 0.05, distance: str = "cosine"):
         super().__init__(dim=dim, name=name)
         self.K = int(K)
         self.update = str(update)
@@ -514,7 +514,7 @@ class FLOC(StreamClusterer):
 
     def __init__(self, dim: int = 2, name: str = "floc",
                  alpha: float = 100.0, beta: float = 0.2, gamma: float = 20.0,
-                 lambda_new: float = 1000.0, rho: float = 0.999,
+                 lambda_new: float = 2000.0, rho: float = 0.999,
                  merge_every: int = 200, max_k: int = 100, min_weight: float = 1.2,
                  max_merges_per_cleanup: int = 20):
         super().__init__(dim=dim, name=name)
@@ -543,7 +543,6 @@ class FLOC(StreamClusterer):
         self._decay_to_now(cf)
         c = self._center(cf); d2 = float(np.sum((x - c) ** 2)); R2 = self._radius2(cf)
         sc = d2 + self.beta * R2 - self.gamma * np.log(cf.N + 1.0)
-        # print(sc)
         return sc
 
     def _new_cf(self, x):
