@@ -87,7 +87,7 @@ class DemoGridClusterer(StreamClusterer):
 import math
 class OnlineKMeans(StreamClusterer):
     def __init__(self, dim: int = 2, name: str = "online_kmeans",
-                 K: int = 4, update: str = "count", alpha: float = 0.05, distance: str = "cosine"):
+                 K: int = 6, update: str = "count", alpha: float = 0.05, distance: str = "cosine"):
         super().__init__(dim=dim, name=name)
         self.K = int(K)
         self.update = str(update)
@@ -597,14 +597,39 @@ class FLOC(StreamClusterer):
                 merges_done += 1
             else:
                 break
+    def linear_normalize(self,x):
+        x = x - np.min(x)
+        if np.sum(x) == 0:
+            return np.ones_like(x) / len(x)
+        return 2*x / np.sum(x)-1
+    
+    def min_max_normalize_neg1(self,x):
+        """线性缩放到[-1, 1]区间"""
+        x_min = np.min(x)
+        x_max = np.max(x)
+        
+        if x_max == x_min:  # 所有值相同
+            return np.zeros_like(x)
+        
+        # 公式: 2 * (x - x_min) / (x_max - x_min) - 1
+        normalized = 2 * (x - x_min) / (x_max - x_min) - 1
+        return normalized
+    def softmax(self,x, axis=1,tau=1.0):
+        x = np.asarray(x, dtype=float).reshape(-1)
+        x = x / tau
+        # 减去最大值提高数值稳定性（防止指数爆炸）
+        e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
+        return e_x / np.sum(e_x, axis=axis, keepdims=True)
 
     def partial_fit(self, x: np.ndarray) -> int:
         x = np.asarray(x, dtype=float).reshape(-1); self.t += 1
         if not self.mcs:
             self._new_cf(x); return 0
         scores = [self._score(x, cf) for cf in self.mcs]
+        # print(self.softmax(scores,axis=0,tau=10.0))
+        # print(self.linear_normalize(scores))
         j = int(np.argmin(scores))
-        if scores[j] > self.lambda_new and (len(self.mcs) < self.max_k * 3):
+        if scores[j] > self.lambda_new and (len(self.mcs) < self.max_k):
             self._new_cf(x); label = len(self.mcs) - 1
         else:
             cf = self.mcs[j]; self._decay_to_now(cf)
