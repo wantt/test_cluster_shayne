@@ -87,7 +87,7 @@ class DemoGridClusterer(StreamClusterer):
 import math
 class OnlineKMeans(StreamClusterer):
     def __init__(self, dim: int = 2, name: str = "online_kmeans",
-                 K: int = 6, update: str = "count", alpha: float = 0.05, distance: str = "cosine"):
+                 K: int = 10, update: str = "count", alpha: float = 0.05, distance: str = "euclidean_distances"):
         super().__init__(dim=dim, name=name)
         self.K = int(K)
         self.update = str(update)
@@ -96,6 +96,12 @@ class OnlineKMeans(StreamClusterer):
         self.counts = np.empty((0,), dtype=float)
         self.distance = str(distance)
 
+    def linear_normalize(self,x): # 归一化到：0-1
+        x = x - np.min(x)
+        if np.sum(x) == 0:
+            return np.ones_like(x) / len(x)
+        return x / np.sum(x)
+    
     def cosine_distances(self, x: np.ndarray) -> np.ndarray:
         """Cosine distance (1 - cosine similarity) to all centers."""
         # 计算余弦相似度：点积 / (L2范数的乘积)
@@ -122,8 +128,8 @@ class OnlineKMeans(StreamClusterer):
             self.centroids = np.vstack([self.centroids, tmp[None, :]])
             self.counts = np.append(self.counts, 1.0)
             
-
-        d2 = getattr(self, f"{self.distance}_distances")(x)
+        # d2 = self.cosine_distances(x) + 2*self.euclidean_distances(x)
+        d2 = getattr(self, f"{self.distance}")(x)
         j = int(np.argmin(d2))
 
         if self.update == "ema":
@@ -520,7 +526,7 @@ class FLOC(StreamClusterer):
 
     def __init__(self, dim: int = 2, name: str = "floc",
                  alpha: float = 100.0, beta: float = 0.2, gamma: float = 20.0,
-                 lambda_new: float = 2000.0, rho: float = 0.999,
+                 lambda_new: float = 3000.0, rho: float = 0.999,
                  merge_every: int = 200, max_k: int = 100, min_weight: float = 1.2,
                  max_merges_per_cleanup: int = 20):
         super().__init__(dim=dim, name=name)

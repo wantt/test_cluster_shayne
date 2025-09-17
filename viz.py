@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import matplotlib.pyplot as plt
-
+from polar import  plot_coordinate_comparison   
 def save_scatter_snapshot(points: np.ndarray,
                           labels: np.ndarray,
                           centroids: np.ndarray = None,
@@ -20,3 +20,8 @@ def save_scatter_snapshot(points: np.ndarray,
     plt.tight_layout()
     plt.savefig(out_path, dpi=140)
     plt.close()
+
+
+    plot_coordinate_comparison(points, polar_points=None, labels=labels, centroids=centroids,
+                          out_path=out_path.replace(".png", "_polar.png"),
+                          title=title)
