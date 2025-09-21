@@ -217,8 +217,8 @@ class MiniBatchKMeans(StreamClusterer):
 
 class DPMeans(StreamClusterer):
     def __init__(self, dim: int = 2, name: str = "dp_means",
-                 lambda0: float = 400.0, max_k: int = 100,
-                 growth: float = 9.0, power: float = 2.0):
+                 lambda0: float = 0.5, max_k: int = 100,
+                 growth: float = 4.0, power: float = 2.0):
         super().__init__(dim=dim, name=name)
         self.lambda0 = float(lambda0)
         self.max_k = int(max_k)
@@ -233,6 +233,20 @@ class DPMeans(StreamClusterer):
             return self.lambda0
         return self.lambda0 * (1.0 + self.growth * ((k / max(self.max_k, 1)) ** self.power))
 
+    def cosine_distances(self, x: np.ndarray) -> np.ndarray:
+        """Cosine distance (1 - cosine similarity) to all centers."""
+        # 计算余弦相似度：点积 / (L2范数的乘积)
+        cosine_sim = np.dot(self.centroids, x) / (
+            np.linalg.norm(self.centroids, axis=1) * np.linalg.norm(x)
+        )
+        # 余弦距离 = 1 - 余弦相似度
+        return 1 - cosine_sim
+    
+    def euclidean_distances(self, x: np.ndarray) -> np.ndarray:
+        """Euclidean distance to all centers."""
+        diffs = self.centroids - x
+        return np.einsum('ij,ij->i', diffs, diffs)
+
     def partial_fit(self, x: np.ndarray) -> int:
         x = np.asarray(x, dtype=float).reshape(-1)
         if self.centroids.shape[0] == 0:
@@ -240,8 +254,9 @@ class DPMeans(StreamClusterer):
             self.counts = np.array([1.0])
             return 0
 
-        diffs = self.centroids - x
-        d2 = np.einsum('ij,ij->i', diffs, diffs)
+        # diffs = self.centroids - x
+        # d2 = np.einsum('ij,ij->i', diffs, diffs)
+        d2 = self.cosine_distances(x)
         j = int(np.argmin(d2))
         if (d2[j] > self._threshold()) and (self.centroids.shape[0] < self.max_k):
             self.centroids = np.vstack([self.centroids, x[None, :]])
